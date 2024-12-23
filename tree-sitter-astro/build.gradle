@@ -1,0 +1,3 @@
+tasks.named('downloadSource') {
+    url = "https://github.com/virchau13/tree-sitter-astro/archive/refs/heads/master.zip"
+}
