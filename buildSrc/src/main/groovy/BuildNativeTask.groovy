@@ -28,6 +28,9 @@ class BuildNativeTask extends DefaultTask{
         }
     }
 
+    @Input
+    String subDirectory = "."
+
     @InputFiles
     FileCollection additionalCFiles = project.files()
 
@@ -56,7 +59,7 @@ class BuildNativeTask extends DefaultTask{
     @InputDirectory
     Directory getSrcDir(){
         def srcDirName = "$libName-$libVersion"
-        return downloadDir.dir(srcDirName)
+        return downloadDir.dir(srcDirName).dir(subDirectory)
     }
 
     @Internal
@@ -167,6 +170,7 @@ class BuildNativeTask extends DefaultTask{
                     "-shared",
                     "-target", target,
                     "-I", srcDir,
+                    "-I", srcDir.dir("src"),
                     "-I", srcDir.dir("lib/include"),
                     "-I", jniIncludeDir,
                     "-I", jniMdIncludeDir,
