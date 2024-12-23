@@ -1,5 +1,6 @@
 #include <jni.h>
 #include <tree_sitter/api.h>
+#include <string.h>
 #include "ConvertUTF.h"
 #ifdef _WIN32
 
@@ -235,16 +236,50 @@ JNIEXPORT jlong JNICALL Java_org_treesitter_TSParser_ts_1parser_1parse_1string
  */
 JNIEXPORT jlong JNICALL Java_org_treesitter_TSParser_ts_1parser_1parse_1string_1encoding
   (JNIEnv *env, jclass clz, jlong parser_ptr, jlong old_tree_ptr, jstring input, jint ts_encoding){
-    const char *str = (*env)->GetStringUTFChars(env, input, NULL);
-    TSTree *ts_tree = ts_parser_parse_string_encoding(
-      (TSParser *) parser_ptr,
-      (TSTree *)old_tree_ptr,
-      str,
-      (*env)->GetStringUTFLength(env, input),
-      ts_encoding
-    );
-    (*env)->ReleaseStringUTFChars(env, input, str);
-    return (jlong) ts_tree;
+    uint32_t str_chars = (*env)->GetStringLength(env, input); // number of java chars
+    TSTree *tree = NULL;
+    if (ts_encoding == TSInputEncodingUTF8) {
+        uint32_t buf_size = str_chars * 2 * 2; // double the utf16 buffer size
+        char *buf = malloc(buf_size);
+        const jchar *str = (*env)->GetStringChars(env, input, NULL); // utf16 string
+        const UTF16 *source_start = (const UTF16 *) str;
+        const UTF16 *source_end = source_start + str_chars;
+        UTF8 *utf8_buf = (UTF8 *) malloc(buf_size);
+        UTF8 *target_start = utf8_buf;
+        UTF8 *target_end = utf8_buf + buf_size;
+        ConversionResult ret = ConvertUTF16toUTF8(&source_start, source_end, &target_start, target_end, strictConversion);
+        (*env)->ReleaseStringChars(env, input, str);
+        if(ret != conversionOK){
+             free(utf8_buf);
+             (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/RuntimeException"), "Invalid UTF-8 source input");
+             return 0;
+        }
+        int target_size = target_start - utf8_buf;
+        tree = ts_parser_parse_string_encoding(
+            (TSParser *) parser_ptr,
+            (TSTree *) old_tree_ptr,
+            (const char *) utf8_buf,
+            target_size,
+            TSInputEncodingUTF8
+        );
+        free(utf8_buf);
+    } else {
+        uint32_t buf_size = str_chars * 2; // utf16 buffer size
+        char *buf = malloc(buf_size);
+        const jchar *str = (*env)->GetStringChars(env, input, NULL); // utf16 string
+        memcpy(buf, str, buf_size);
+        (*env)->ReleaseStringChars(env, input, str);
+        tree = ts_parser_parse_string_encoding(
+            (TSParser *) parser_ptr,
+            (TSTree *) old_tree_ptr,
+            (const char *) buf,
+            buf_size,
+            TSInputEncodingUTF16
+        );
+        free(buf);
+    }
+
+    return (jlong) tree;
 }
 
 
