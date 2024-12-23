@@ -1,6 +1,7 @@
 package org.treesitter;
 
 import static org.treesitter.TSParser.*;
+import java.nio.charset.StandardCharsets;
 
 public class TSQuery {
     private final long ptr;
@@ -36,8 +37,12 @@ public class TSQuery {
      *
      * @throws TSQueryException If the query is invalid
      */
-    public TSQuery(TSLanguage language, String query){
+    public TSQuery(TSLanguage language, byte[] query){
         this(ts_query_new(language.getPtr(), query));
+    }
+
+    public TSQuery(TSLanguage language, String query){
+        this(ts_query_new(language.getPtr(), query.getBytes(StandardCharsets.UTF_8)));
     }
 
     protected long getPtr() {

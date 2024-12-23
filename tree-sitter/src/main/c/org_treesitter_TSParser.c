@@ -485,21 +485,24 @@ char TSQueryErrorBuffer[64];
 /*
  * Class:     org_treesitter_TSParser
  * Method:    ts_query_new
- * Signature: (JLjava/lang/String;)J
+ * Signature: (J[B)J
  */
 JNIEXPORT jlong JNICALL Java_org_treesitter_TSParser_ts_1query_1new
-  (JNIEnv *env, jclass clz, jlong ts_language_ptr, jstring string){
-  const char* str = (*env)->GetStringUTFChars(env, string, NULL);
+  (JNIEnv *env, jclass clz, jlong ts_language_ptr, jbyteArray buf){
+  jsize bytes_size = (*env)->GetArrayLength(env, buf);
+  char* bytes = (char *) malloc(bytes_size);
+  (*env)->GetByteArrayRegion(env, buf, 0, bytes_size, (jbyte *) bytes);
+
   uint32_t error_offset;
   TSQueryError error_type;
   TSQuery *query = ts_query_new(
     (const TSLanguage *) ts_language_ptr,
-    str,
-    (*env)->GetStringUTFLength(env, string),
+    bytes,
+    bytes_size,
     &error_offset,
     &error_type
   );
-  (*env)->ReleaseStringUTFChars(env, string, str);
+  free(bytes);
   if(query == NULL){
     sprintf(TSQueryErrorBuffer, "Invalid query: %s at offset %d", TSQueryErrorNames[error_type], error_offset);
     (*env)->ThrowNew(env, (*env)->FindClass(env, TS_QUERY_EXCEPTION_CLASS_NAME), TSQueryErrorBuffer);

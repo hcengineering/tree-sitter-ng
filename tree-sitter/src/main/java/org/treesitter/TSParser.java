@@ -109,7 +109,7 @@ public class TSParser {
     protected static native int ts_tree_cursor_goto_first_child_for_byte(long cursor_ptr, int startByte);
     protected static native int ts_tree_cursor_goto_first_child_for_point(long cursor_ptr, TSPoint startPoint);
     protected static native long ts_tree_cursor_copy(long cursor_ptr);
-    protected static native long ts_query_new(long ts_language_ptr, String source);
+    protected static native long ts_query_new(long ts_language_ptr, byte[] source);
     protected static native void ts_query_delete(long ts_query_ptr);
     protected static native int ts_query_pattern_count(long ts_query_ptr);
     protected static native int ts_query_capture_count(long ts_query_ptr);
