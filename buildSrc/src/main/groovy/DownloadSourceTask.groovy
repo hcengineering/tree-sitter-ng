@@ -15,6 +15,9 @@ import org.treesitter.build.Utils
 
 class DownloadSourceTask extends DefaultTask{
     @Input
+    String srcLibName = ""
+
+    @Input
     String url = ""
 
     @Internal
@@ -39,7 +42,7 @@ class DownloadSourceTask extends DefaultTask{
 
     @OutputDirectory
     Directory getSrcDir(){
-        def srcDirName = "$libName-$libVersion"
+        def srcDirName = this.srcLibName == "" ? "$libName-$libVersion" : "$srcLibName-$libVersion"
         return downloadDir.dir(srcDirName)
     }
 

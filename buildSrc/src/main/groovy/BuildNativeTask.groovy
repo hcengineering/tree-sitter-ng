@@ -15,6 +15,8 @@ import org.gradle.api.tasks.TaskAction
 import org.treesitter.build.Utils
 
 class BuildNativeTask extends DefaultTask{
+    @Input
+    String srcLibName = ""
 
     static String libExt(String target){
         if(target.contains("windows")){
@@ -58,7 +60,7 @@ class BuildNativeTask extends DefaultTask{
 
     @InputDirectory
     Directory getSrcDir(){
-        def srcDirName = "$libName-$libVersion"
+        def srcDirName = this.srcLibName == "" ? "$libName-$libVersion" : "$srcLibName-$libVersion"
         return downloadDir.dir(srcDirName).dir(subDirectory)
     }
 

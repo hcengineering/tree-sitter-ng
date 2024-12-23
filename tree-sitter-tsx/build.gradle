@@ -1,7 +1,9 @@
 tasks.named('downloadSource') {
+    srcLibName = "tree-sitter-typescript"
     url = "https://github.com/tree-sitter/tree-sitter-typescript/archive/refs/tags/v${version}.zip"
 }
 
 tasks.named('buildNative') {
-    subDirectory = "typescript"
+    srcLibName = "tree-sitter-typescript"
+    subDirectory = "tsx"
 }
