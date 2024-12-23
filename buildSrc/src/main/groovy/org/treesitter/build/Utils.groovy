@@ -3,6 +3,7 @@ package org.treesitter.build
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
+import org.apache.commons.compress.compressors.xz.XZCompressorInputStream
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
@@ -192,6 +193,30 @@ abstract class Utils {
                 outputFile.withOutputStream {output -> {
                     output << tarInputStream
                 }}
+                if (entry.getMode() & 0100) {
+                    outputFile.setExecutable(true, true)
+                }
+            }
+        }
+        tarInputStream.close()
+    }
+
+    static unzipTarXz(File tgzFile, File outputDir){
+        FileInputStream fileInputStream = new FileInputStream(tgzFile)
+        XZCompressorInputStream gzipInputStream = new XZCompressorInputStream(fileInputStream)
+        TarArchiveInputStream tarInputStream = new TarArchiveInputStream(gzipInputStream)
+        TarArchiveEntry entry
+        while ((entry = tarInputStream.nextEntry) != null) {
+            File outputFile = new File(outputDir, entry.name)
+            if (entry.isDirectory()) {
+                outputFile.mkdirs()
+            } else {
+                outputFile.withOutputStream {output -> {
+                    output << tarInputStream
+                }}
+                if (entry.getMode() & 0100) {
+                    outputFile.setExecutable(true, true)
+                }
             }
         }
         tarInputStream.close()

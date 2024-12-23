@@ -2,5 +2,6 @@ repositories {
     mavenCentral()
 }
 dependencies {
+    implementation 'org.tukaani:xz:1.10'
     implementation 'org.apache.commons:commons-compress:1.27.1'
 }

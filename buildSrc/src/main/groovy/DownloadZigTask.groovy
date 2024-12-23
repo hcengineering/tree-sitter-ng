@@ -74,7 +74,11 @@ class DownloadZigTask extends DefaultTask{
 
     @OutputFile
     RegularFile getZigZipFile(){
-        zigDir.file("zig-$osName-$archName-${zigVersion}.zip")
+        if (os.windows) {
+            zigDir.file("zig-$osName-$archName-${zigVersion}.zip")
+        } else {
+            zigDir.file("zig-$osName-$archName-${zigVersion}.tar.xz")
+        }
     }
 
     @OutputFile
@@ -84,7 +88,11 @@ class DownloadZigTask extends DefaultTask{
 
     @Internal
     String getZigZipUrl(){
-        "https://ziglang.org/download/$zigVersion/zig-$osName-$archName-${zigVersion}.zip"
+        if (os.windows) {
+            "https://ziglang.org/download/$zigVersion/zig-$osName-$archName-${zigVersion}.zip"
+        } else {
+            "https://ziglang.org/download/$zigVersion/zig-$osName-$archName-${zigVersion}.tar.xz"
+        }
     }
 
     @Internal
@@ -114,6 +122,10 @@ class DownloadZigTask extends DefaultTask{
         if(!zipVerified) {
             throw new GradleException("$zigZipFile signature does not match!")
         }
-        Utils.unzipFile(zigZipFile.asFile, zigDir.asFile)
+        if (os.windows) {
+            Utils.unzipFile(zigZipFile.asFile, zigDir.asFile)
+        } else {
+            Utils.unzipTarXz(zigZipFile.asFile, zigDir.asFile)
+        }
     }
 }
