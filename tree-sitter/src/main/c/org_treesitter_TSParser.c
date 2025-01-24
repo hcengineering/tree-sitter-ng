@@ -10,6 +10,7 @@
 #endif
 
 // TODO cache field, method at startup
+#define TS_PARSER_CLASS_NAME "org/treesitter/TSParser"
 #define TS_NODE_CLASS_NAME "org/treesitter/TSNode"
 #define TS_NODE_SIGNATURE "Lorg/treesitter/TSNode;"
 #define TS_POINT_CLASS_NAME "org/treesitter/TSPoint"
@@ -32,8 +33,29 @@ jclass ts_jni_find_class(JNIEnv *env, const char *class_name){
 
 JavaVM* java_vm = NULL;
 
-jint JNI_OnLoad(JavaVM* vm, void* reserved) {
+static void register_natives(JNIEnv *env);
+
+
+#ifndef JNI_ONLOAD_NAME
+#define JNI_ONLOAD_NAME JNI_OnLoad
+#endif
+
+jint JNI_ONLOAD_NAME(JavaVM* vm, void* reserved) {
     java_vm = vm;
+    JNIEnv *env;
+    int ret = (*java_vm)->GetEnv(java_vm, (void **)&env, JNI_VERSION_10);
+    if (ret == JNI_EDETACHED) {
+        ret = (*java_vm)->AttachCurrentThread(java_vm, (void **) &env, NULL);
+        if (ret != 0) {
+            printf("getenv(): can't attach `logger` to current thread\n");
+            return JNI_VERSION_10;
+        }
+    } else if (ret == JNI_EVERSION) {
+        printf("getenv(): jni version error\n");
+        return JNI_VERSION_10;
+    }
+    register_natives(env);
+
     return JNI_VERSION_10;
 }
 
@@ -1919,4 +1941,151 @@ JNIEXPORT void JNICALL Java_org_treesitter_TSParser_ts_1query_1cursor_1set_1time
 JNIEXPORT jlong JNICALL Java_org_treesitter_TSParser_ts_1query_1cursor_1timeout_1micros
   (JNIEnv *env, jclass clz, jlong ts_query_ptr){
     return ts_query_cursor_timeout_micros((TSQueryCursor *) ts_query_ptr);
+}
+
+static void register_natives(JNIEnv *env) {
+    jclass ts_parser_class = (*env)->FindClass(env, TS_PARSER_CLASS_NAME);
+    JNINativeMethod methods[] = {
+        {.name = "alloc_cancellation_flag", .signature = "()J", .fnPtr = &Java_org_treesitter_TSParser_alloc_1cancellation_1flag},
+        {.name = "free_cancellation_flag", .signature = "(J)V", .fnPtr = &Java_org_treesitter_TSParser_free_1cancellation_1flag},
+        {.name = "free_logger", .signature = "(J)V", .fnPtr = &Java_org_treesitter_TSParser_free_1logger},
+        {.name = "get_cancellation_flag_value", .signature = "(J)J", .fnPtr = &Java_org_treesitter_TSParser_get_1cancellation_1flag_1value},
+        {.name = "write_cancellation_flag", .signature = "(JJ)V", .fnPtr = &Java_org_treesitter_TSParser_write_1cancellation_1flag},
+
+        {.name = "ts_language_copy", .signature = "(J)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1language_1copy},
+        {.name = "ts_language_field_count", .signature = "(J)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1language_1field_1count},
+        {.name = "ts_language_field_id_for_name", .signature = "(JLjava/lang/String;)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1language_1field_1id_1for_1name},
+        {.name = "ts_language_field_name_for_id", .signature = "(JI)Ljava/lang/String;", .fnPtr = &Java_org_treesitter_TSParser_ts_1language_1field_1name_1for_1id},
+        {.name = "ts_language_next_state", .signature = "(JII)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1language_1next_1state},
+        {.name = "ts_language_state_count", .signature = "(J)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1language_1state_1count},
+        {.name = "ts_language_symbol_count", .signature = "(J)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1language_1symbol_1count},
+        {.name = "ts_language_symbol_for_name", .signature = "(JLjava/lang/String;Z)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1language_1symbol_1for_1name},
+        {.name = "ts_language_symbol_name", .signature = "(JI)Ljava/lang/String;", .fnPtr = &Java_org_treesitter_TSParser_ts_1language_1symbol_1name},
+        {.name = "ts_language_symbol_type", .signature = "(JI)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1language_1symbol_1type},
+        {.name = "ts_language_version", .signature = "(J)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1language_1version},
+
+        {.name = "ts_lookahead_iterator_new", .signature = "(JI)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1lookahead_1iterator_1new},
+        {.name = "ts_lookahead_iterator_delete", .signature = "(J)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1lookahead_1iterator_1delete},
+        {.name = "ts_lookahead_iterator_current_symbol", .signature = "(J)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1lookahead_1iterator_1current_1symbol},
+        {.name = "ts_lookahead_iterator_current_symbol_name", .signature = "(J)Ljava/lang/String;", .fnPtr = &Java_org_treesitter_TSParser_ts_1lookahead_1iterator_1current_1symbol_1name},
+        {.name = "ts_lookahead_iterator_language", .signature = "(J)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1lookahead_1iterator_1language},
+        {.name = "ts_lookahead_iterator_next", .signature = "(J)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1lookahead_1iterator_1next},
+        {.name = "ts_lookahead_iterator_reset", .signature = "(JJI)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1lookahead_1iterator_1reset},
+        {.name = "ts_lookahead_iterator_reset_state", .signature = "(JI)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1lookahead_1iterator_1reset_1state},
+
+        {.name = "ts_node_child", .signature = "(Lorg/treesitter/TSNode;I)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1child},
+        {.name = "ts_node_child_by_field_id", .signature = "(Lorg/treesitter/TSNode;I)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1child_1by_1field_1id},
+        {.name = "ts_node_child_by_field_name", .signature = "(Lorg/treesitter/TSNode;Ljava/lang/String;)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1child_1by_1field_1name},
+        {.name = "ts_node_child_containing_descendant", .signature = "(Lorg/treesitter/TSNode;Lorg/treesitter/TSNode;)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1child_1containing_1descendant},
+        {.name = "ts_node_child_count", .signature = "(Lorg/treesitter/TSNode;)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1child_1count},
+        {.name = "ts_node_child_with_descendant", .signature = "(Lorg/treesitter/TSNode;Lorg/treesitter/TSNode;)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1child_1with_1descendant},
+        {.name = "ts_node_descendant_for_byte_range", .signature = "(Lorg/treesitter/TSNode;II)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1descendant_1for_1byte_1range},
+        {.name = "ts_node_descendant_for_point_range", .signature = "(Lorg/treesitter/TSNode;Lorg/treesitter/TSPoint;Lorg/treesitter/TSPoint;)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1descendant_1for_1point_1range},
+        {.name = "ts_node_edit", .signature = "(Lorg/treesitter/TSNode;Lorg/treesitter/TSInputEdit;)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1edit},
+        {.name = "ts_node_end_byte", .signature = "(Lorg/treesitter/TSNode;)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1end_1byte},
+        {.name = "ts_node_end_point", .signature = "(Lorg/treesitter/TSNode;)Lorg/treesitter/TSPoint;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1end_1point},
+        {.name = "ts_node_eq", .signature = "(Lorg/treesitter/TSNode;Lorg/treesitter/TSNode;)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1eq},
+        {.name = "ts_node_field_name_for_child", .signature = "(Lorg/treesitter/TSNode;I)Ljava/lang/String;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1field_1name_1for_1child},
+        {.name = "ts_node_field_name_for_named_child", .signature = "(Lorg/treesitter/TSNode;I)Ljava/lang/String;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1field_1name_1for_1named_1child},
+        {.name = "ts_node_first_child_for_byte", .signature = "(Lorg/treesitter/TSNode;I)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1first_1child_1for_1byte},
+        {.name = "ts_node_first_named_child_for_byte", .signature = "(Lorg/treesitter/TSNode;I)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1first_1named_1child_1for_1byte},
+        {.name = "ts_node_grammar_symbol", .signature = "(Lorg/treesitter/TSNode;)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1grammar_1symbol},
+        {.name = "ts_node_grammar_type", .signature = "(Lorg/treesitter/TSNode;)Ljava/lang/String;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1grammar_1type},
+        {.name = "ts_node_has_changes", .signature = "(Lorg/treesitter/TSNode;)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1has_1changes},
+        {.name = "ts_node_has_error", .signature = "(Lorg/treesitter/TSNode;)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1has_1error},
+        {.name = "ts_node_is_error", .signature = "(Lorg/treesitter/TSNode;)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1is_1error},
+        {.name = "ts_node_is_extra", .signature = "(Lorg/treesitter/TSNode;)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1is_1extra},
+        {.name = "ts_node_is_missing", .signature = "(Lorg/treesitter/TSNode;)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1is_1missing},
+        {.name = "ts_node_is_named", .signature = "(Lorg/treesitter/TSNode;)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1is_1named},
+        {.name = "ts_node_is_null", .signature = "(Lorg/treesitter/TSNode;)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1is_1null},
+        {.name = "ts_node_named_child", .signature = "(Lorg/treesitter/TSNode;I)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1named_1child},
+        {.name = "ts_node_named_child_count", .signature = "(Lorg/treesitter/TSNode;)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1named_1child_1count},
+        {.name = "ts_node_named_descendant_for_byte_range", .signature = "(Lorg/treesitter/TSNode;II)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1named_1descendant_1for_1byte_1range},
+        {.name = "ts_node_named_descendant_for_point_range", .signature = "(Lorg/treesitter/TSNode;Lorg/treesitter/TSPoint;Lorg/treesitter/TSPoint;)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1named_1descendant_1for_1point_1range},
+        {.name = "ts_node_next_named_sibling", .signature = "(Lorg/treesitter/TSNode;)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1next_1named_1sibling},
+        {.name = "ts_node_next_parse_state", .signature = "(Lorg/treesitter/TSNode;)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1next_1parse_1state},
+        {.name = "ts_node_next_sibling", .signature = "(Lorg/treesitter/TSNode;)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1next_1sibling},
+        {.name = "ts_node_parent", .signature = "(Lorg/treesitter/TSNode;)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1parent},
+        {.name = "ts_node_parse_state", .signature = "(Lorg/treesitter/TSNode;)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1parse_1state},
+        {.name = "ts_node_prev_named_sibling", .signature = "(Lorg/treesitter/TSNode;)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1prev_1named_1sibling},
+        {.name = "ts_node_prev_sibling", .signature = "(Lorg/treesitter/TSNode;)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1prev_1sibling},
+        {.name = "ts_node_start_byte", .signature = "(Lorg/treesitter/TSNode;)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1start_1byte},
+        {.name = "ts_node_start_point", .signature = "(Lorg/treesitter/TSNode;)Lorg/treesitter/TSPoint;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1start_1point},
+        {.name = "ts_node_string", .signature = "(Lorg/treesitter/TSNode;)Ljava/lang/String;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1string},
+        {.name = "ts_node_symbol", .signature = "(Lorg/treesitter/TSNode;)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1symbol},
+        {.name = "ts_node_type", .signature = "(Lorg/treesitter/TSNode;)Ljava/lang/String;", .fnPtr = &Java_org_treesitter_TSParser_ts_1node_1type},
+
+        {.name = "ts_parser_new", .signature = "()J", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1new},
+        {.name = "ts_parser_delete", .signature = "(J)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1delete},
+        {.name = "ts_parser_included_ranges", .signature = "(J)[Lorg/treesitter/TSRange;", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1included_1ranges},
+        {.name = "ts_parser_language", .signature = "(J)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1language},
+        {.name = "ts_parser_parse", .signature = "(J[BJLorg/treesitter/TSReader;I)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1parse},
+        {.name = "ts_parser_parse_string", .signature = "(JJLjava/lang/String;)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1parse_1string},
+        {.name = "ts_parser_parse_string_encoding", .signature = "(JJLjava/lang/String;I)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1parse_1string_1encoding},
+        {.name = "ts_parser_print_dot_graphs", .signature = "(JLjava/io/FileDescriptor;)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1print_1dot_1graphs},
+        {.name = "ts_parser_reset", .signature = "(J)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1reset},
+        {.name = "ts_parser_cancellation_flag", .signature = "(J)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1cancellation_1flag},
+        {.name = "ts_parser_set_cancellation_flag", .signature = "(JJ)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1set_1cancellation_1flag},
+        {.name = "ts_parser_set_included_ranges", .signature = "(J[Lorg/treesitter/TSRange;)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1set_1included_1ranges},
+        {.name = "ts_parser_set_language", .signature = "(JJ)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1set_1language},
+        {.name = "ts_parser_set_logger", .signature = "(JLorg/treesitter/TSLogger;)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1set_1logger},
+        {.name = "ts_parser_set_timeout_micros", .signature = "(JJ)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1set_1timeout_1micros},
+        {.name = "ts_parser_timeout_micros", .signature = "(J)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1parser_1timeout_1micros},
+
+        {.name = "ts_query_cursor_new", .signature = "()J", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1new},
+        {.name = "ts_query_cursor_delete", .signature = "(J)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1delete},
+        {.name = "ts_query_cursor_exec", .signature = "(JJLorg/treesitter/TSNode;)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1exec},
+        {.name = "ts_query_cursor_set_match_limit", .signature = "(JI)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1set_1match_1limit},
+        {.name = "ts_query_cursor_match_limit", .signature = "(J)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1match_1limit},
+        {.name = "ts_query_cursor_did_exceed_match_limit", .signature = "(J)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1did_1exceed_1match_1limit},
+        {.name = "ts_query_cursor_next_capture", .signature = "(JLorg/treesitter/TSQueryMatch;)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1next_1capture},
+        {.name = "ts_query_cursor_next_match", .signature = "(JLorg/treesitter/TSQueryMatch;)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1next_1match},
+        {.name = "ts_query_cursor_remove_match", .signature = "(JI)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1remove_1match},
+        {.name = "ts_query_cursor_set_byte_range", .signature = "(JII)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1set_1byte_1range},
+        {.name = "ts_query_cursor_set_point_range", .signature = "(JLorg/treesitter/TSPoint;Lorg/treesitter/TSPoint;)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1set_1point_1range},
+        {.name = "ts_query_cursor_set_timeout_micros", .signature = "(JJ)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1set_1timeout_1micros},
+        {.name = "ts_query_cursor_timeout_micros", .signature = "(J)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1cursor_1timeout_1micros},
+
+        {.name = "ts_query_new", .signature = "(J[B)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1new},
+        {.name = "ts_query_delete", .signature = "(J)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1delete},
+        {.name = "ts_query_disable_capture", .signature = "(JLjava/lang/String;)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1disable_1capture},
+        {.name = "ts_query_disable_pattern", .signature = "(JI)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1disable_1pattern},
+        {.name = "ts_query_start_byte_for_pattern", .signature = "(JI)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1start_1byte_1for_1pattern},
+        {.name = "ts_query_end_byte_for_pattern", .signature = "(JI)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1end_1byte_1for_1pattern},
+        {.name = "ts_query_is_pattern_guaranteed_at_step", .signature = "(JI)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1is_1pattern_1guaranteed_1at_1step},
+        {.name = "ts_query_is_pattern_non_local", .signature = "(JI)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1is_1pattern_1non_1local},
+        {.name = "ts_query_is_pattern_rooted", .signature = "(JI)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1is_1pattern_1rooted},
+        {.name = "ts_query_pattern_count", .signature = "(J)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1pattern_1count},
+        {.name = "ts_query_predicates_for_pattern", .signature = "(JI)[Lorg/treesitter/TSQueryPredicateStep;", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1predicates_1for_1pattern},
+        {.name = "ts_query_string_count", .signature = "(J)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1string_1count},
+        {.name = "ts_query_string_value_for_id", .signature = "(JI)Ljava/lang/String;", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1string_1value_1for_1id},
+        {.name = "ts_query_capture_count", .signature = "(J)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1capture_1count},
+        {.name = "ts_query_capture_name_for_id", .signature = "(JI)Ljava/lang/String;", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1capture_1name_1for_1id},
+        {.name = "ts_query_capture_quantifier_for_id", .signature = "(JII)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1query_1capture_1quantifier_1for_1id},
+
+        {.name = "ts_tree_cursor_new", .signature = "(Lorg/treesitter/TSNode;)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1cursor_1new},
+        {.name = "ts_tree_cursor_delete", .signature = "(J)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1cursor_1delete},
+        {.name = "free_cursor", .signature = "(J)V", .fnPtr = &Java_org_treesitter_TSParser_free_1cursor},
+        {.name = "ts_tree_cursor_copy", .signature = "(J)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1cursor_1copy},
+        {.name = "ts_tree_cursor_current_field_id", .signature = "(J)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1cursor_1current_1field_1id},
+        {.name = "ts_tree_cursor_current_field_name", .signature = "(J)Ljava/lang/String;", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1cursor_1current_1field_1name},
+        {.name = "ts_tree_cursor_current_node", .signature = "(J)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1cursor_1current_1node},
+        {.name = "ts_tree_cursor_goto_first_child", .signature = "(J)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1cursor_1goto_1first_1child},
+        {.name = "ts_tree_cursor_goto_first_child_for_byte", .signature = "(JI)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1cursor_1goto_1first_1child_1for_1byte},
+        {.name = "ts_tree_cursor_goto_first_child_for_point", .signature = "(JLorg/treesitter/TSPoint;)I", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1cursor_1goto_1first_1child_1for_1point},
+        {.name = "ts_tree_cursor_goto_next_sibling", .signature = "(J)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1cursor_1goto_1next_1sibling},
+        {.name = "ts_tree_cursor_goto_parent", .signature = "(J)Z", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1cursor_1goto_1parent},
+        {.name = "ts_tree_cursor_reset", .signature = "(JLorg/treesitter/TSNode;)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1cursor_1reset},
+
+        {.name = "ts_tree_copy", .signature = "(J)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1copy},
+        {.name = "ts_tree_delete", .signature = "(J)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1delete},
+        {.name = "ts_tree_edit", .signature = "(JLorg/treesitter/TSInputEdit;)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1edit},
+        {.name = "ts_tree_get_changed_ranges", .signature = "(JJ)[Lorg/treesitter/TSRange;", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1get_1changed_1ranges},
+        {.name = "ts_tree_included_ranges", .signature = "(J)[Lorg/treesitter/TSRange;", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1included_1ranges},
+        {.name = "ts_tree_language", .signature = "(J)J", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1language},
+        {.name = "ts_tree_print_dot_graph", .signature = "(JLjava/io/FileDescriptor;)V", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1print_1dot_1graph},
+        {.name = "ts_tree_root_node", .signature = "(J)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1root_1node},
+        {.name = "ts_tree_root_node_with_offset", .signature = "(JILorg/treesitter/TSPoint;)Lorg/treesitter/TSNode;", .fnPtr = &Java_org_treesitter_TSParser_ts_1tree_1root_1node_1with_1offset},
+    };
+    (*env)->RegisterNatives(env, ts_parser_class, methods, sizeof(methods) / sizeof(JNINativeMethod));
 }
