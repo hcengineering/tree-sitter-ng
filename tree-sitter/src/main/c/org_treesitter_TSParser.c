@@ -130,6 +130,7 @@ jobject predicate_step_type_from_num(JNIEnv *env, TSQueryPredicateStepType type)
             break;
         default:
             (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/RuntimeException"), "Can't handle TSQueryPredicateStepType");
+            return NULL;
     }
     return (* env)->GetStaticObjectField(env, step_type_class, enum_field);
 }
@@ -139,7 +140,6 @@ jobject predicate_step_type_from_num(JNIEnv *env, TSQueryPredicateStepType type)
 
 jobject ts_query_predicate_step_to_obj(JNIEnv *env, const TSQueryPredicateStep *step){
     jclass ts_query_predicate_step_class = ts_jni_find_class(env, TS_QUERY_PREDICATE_STEP_CLASS_NAME);
-    jclass ts_query_predicate_step_type_class = ts_jni_find_class(env, TS_QUERY_PREDICATE_STEP_TYPE_CLASS_NAME);
     jobject step_object = (*env)->AllocObject(env, ts_query_predicate_step_class);
     (*env)->SetObjectField(env, step_object, ts_jni_get_field_id(env, ts_query_predicate_step_class, "type", TS_QUERY_PREDICATE_STEP_TYPE_SIGNATURE), predicate_step_type_from_num(env, step->type));
     (*env)->SetIntField(env, step_object, ts_jni_get_field_id(env, ts_query_predicate_step_class, "valueId", "I"), step->value_id);
@@ -174,7 +174,6 @@ jobject ts_query_capture_to_obj(JNIEnv *env, const TSQueryCapture *capture){
 
 void copy_match(JNIEnv *env, TSQueryMatch *match, int capture_index, jobject ts_match_obj){
    jclass match_class_name = (*env)->GetObjectClass(env, ts_match_obj);
-   jclass match_capture_name = (*env)->FindClass(env, TS_QUERY_QUERY_CAPTURE_CLASS_NAME);
    jclass ts_capture_class = ts_jni_find_class(env, TS_QUERY_QUERY_CAPTURE_CLASS_NAME);
    (*env)->SetIntField(env, ts_match_obj, ts_jni_get_field_id(env, match_class_name, "id", "I"), match->id);
    (*env)->SetIntField(env, ts_match_obj, ts_jni_get_field_id(env, match_class_name, "patternIndex", "I"), match->pattern_index);
@@ -262,7 +261,6 @@ JNIEXPORT jlong JNICALL Java_org_treesitter_TSParser_ts_1parser_1parse_1string_1
     TSTree *tree = NULL;
     if (ts_encoding == TSInputEncodingUTF8) {
         uint32_t buf_size = str_chars * 2 * 2; // double the utf16 buffer size
-        char *buf = malloc(buf_size);
         const jchar *str = (*env)->GetStringChars(env, input, NULL); // utf16 string
         const UTF16 *source_start = (const UTF16 *) str;
         const UTF16 *source_end = source_start + str_chars;
@@ -423,6 +421,7 @@ void ts_log(void *payload, TSLogType logType, const char *str){
             break;
         default:
             (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/RuntimeException"), "Can't handle TSLogType");
+            return;
     }
     jobject enum_value = (* env)->GetStaticObjectField(env, ts_log_type_class, enum_field);
     jstring message = (*env)->NewStringUTF(env, str);
@@ -493,7 +492,7 @@ JNIEXPORT jlong JNICALL Java_org_treesitter_TSParser_ts_1tree_1copy
 }
 
 const char *TSQueryErrorNames[] = {
-    "TSQueryErrorNone"
+    "TSQueryErrorNone",
     "TSQueryErrorSyntax",
     "TSQueryErrorNodeType",
     "TSQueryErrorField",
@@ -607,8 +606,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_treesitter_TSParser_ts_1query_1predicate
     );
     jclass step_class = (*env)->FindClass(env, TS_QUERY_PREDICATE_STEP_CLASS_NAME);
     jobjectArray step_objects = (*env)->NewObjectArray(env, length, step_class, NULL);
-    for(int i = 0; i < length; i++){
-        (*env)->SetObjectArrayElement(env, step_objects, i, ts_query_predicate_step_to_obj(env, step));
+    for(uint32_t i = 0; i < length; i++){
+        (*env)->SetObjectArrayElement(env, step_objects, (int)i, ts_query_predicate_step_to_obj(env, step));
         step++;
     }
     return step_objects;
@@ -965,8 +964,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_treesitter_TSParser_ts_1tree_1included_1
     jclass ts_range_class = ts_jni_find_class(env, TS_RANGE_CLASS_NAME);
     jobjectArray range_objects = (*env)->NewObjectArray(env, length, ts_range_class, NULL);
     if(length > 0){
-       for(int i = 0; i < length; i++){
-          (*env)->SetObjectArrayElement(env, range_objects, i, ts_range_to_obj(env, ts_range));
+       for(uint32_t i = 0; i < length; i++){
+          (*env)->SetObjectArrayElement(env, range_objects, (int)i, ts_range_to_obj(env, ts_range));
           ts_range++;
       }
       free((void *) range_start);
@@ -1004,8 +1003,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_treesitter_TSParser_ts_1tree_1get_1chang
   jclass ts_range_class = ts_jni_find_class(env, TS_RANGE_CLASS_NAME);
   jobjectArray range_objects = (*env)->NewObjectArray(env, length, ts_range_class, NULL);
   if(length > 0){
-    for(int i = 0; i < length; i++){
-        (*env)->SetObjectArrayElement(env, range_objects, i, ts_range_to_obj(env, ts_range));
+    for(uint32_t i = 0; i < length; i++){
+        (*env)->SetObjectArrayElement(env, range_objects, (int)i, ts_range_to_obj(env, ts_range));
         ts_range++;
     }
     free((void *)range_start);
@@ -1677,8 +1676,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_treesitter_TSParser_ts_1parser_1included
         );
     jclass ts_range_class = ts_jni_find_class(env, TS_RANGE_CLASS_NAME);
     jobjectArray range_objects = (*env)->NewObjectArray(env, length, ts_range_class, NULL);
-    for(int i = 0; i < length; i++){
-        (*env)->SetObjectArrayElement(env, range_objects, i, ts_range_to_obj(env, ts_range));
+    for(uint32_t i = 0; i < length; i++){
+        (*env)->SetObjectArrayElement(env, range_objects, (int)i, ts_range_to_obj(env, ts_range));
         ts_range++;
     }
     return range_objects;
